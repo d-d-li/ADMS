@@ -1,0 +1,40 @@
+#!/bin/bash
+
+ 
+
+CODE=/data/brier/ADMS/images/xnat_toolbox/xnat_toolbox-main
+
+ 
+
+output=$(bash $CODE/requestXNAToken -u dagu541 -s cnda.wustl.edu)
+ALIAS=$(echo $output | awk '{print $9}')
+SECRET=$(echo $output | awk '{print $11}')
+
+ 
+
+IFS=$'\n'
+Subjects=($(cat list.txt)) # Specify a file over which to loop.  Two columns in file: 1: subid, 2: sesid
+
+ 
+
+
+i=0
+
+ 
+
+while [ $i -lt ${#Subjects[*]} ]
+do
+    S=$(echo ${Subjects[$i]} | awk '{print $1}')
+    T=$(echo ${Subjects[$i]} | awk '{print $2}')
+
+ 
+
+
+    bash $CODE/createSubject -i ADMS $S -t $ALIAS $SECRET -s cnda.wustl.edu
+    bash $CODE/createExperiment -i ADMS $S $T -t $ALIAS $SECRET -s cnda.wustl.edu -m mr
+    bash $CODE/createScan -i ADMS $S $T -t $ALIAS $SECRET -s cnda.wustl.edu -m mr -n 1 -p "&xnat:mrScanData/type=T1&xnat:mrScanData/series_description=T1"
+    bash $CODE/createScanResource -i ADMS $S $T 1 -t $ALIAS $SECRET -s cnda.wustl.edu -p "content=NIFTI&format=NIFTI" -r NIFTI
+    bash $CODE/uploadScanResource -i ADMS $S $T 1 -t $ALIAS $SECRET -s cnda.wustl.edu -r NIFTI -f /data/brier/ADMS/images/$S/${S}_${T}_T1.nii.gz
+
+    i=$[i+1]
+done
